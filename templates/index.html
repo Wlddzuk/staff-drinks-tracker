@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Staff Drinks Tracker</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.1.3/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.1.3/js/bootstrap.bundle.min.js"></script>
+    <style>
+        .tab-content {
+            margin-top: 20px;
+        }
+        .order-history {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="container mt-4">
+        <h1 class="mb-4">Staff Drinks Tracker</h1>
+        
+        <ul class="nav nav-tabs" id="myTab" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="order-tab" data-bs-toggle="tab" data-bs-target="#order" type="button" role="tab">Order Drink</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="staff-tab" data-bs-toggle="tab" data-bs-target="#staff" type="button" role="tab">Manage Staff</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="drinks-tab" data-bs-toggle="tab" data-bs-target="#drinks" type="button" role="tab">Manage Drinks</button>
+            </li>
+        </ul>
+        
+        <div class="tab-content" id="myTabContent">
+            <!-- Order Drink Tab -->
+            <div class="tab-pane fade show active" id="order" role="tabpanel">
+                <h3>Order Drink</h3>
+                <form id="orderForm" class="mb-4">
+                    <div class="mb-3">
+                        <label for="orderStaffSelect" class="form-label">Staff Member</label>
+                        <select class="form-select" id="orderStaffSelect" required>
+                            <!-- Will be populated dynamically -->
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="orderDrinkSelect" class="form-label">Drink</label>
+                        <select class="form-select" id="orderDrinkSelect" required>
+                            <!-- Will be populated dynamically -->
+                        </select>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Place Order</button>
+                </form>
+                
+                <h4>Order History</h4>
+                <div class="order-history">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Staff Name</th>
+                                <th>Current Tab</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="staffOrdersList">
+                            <!-- Will be populated dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            
+            <!-- Manage Staff Tab -->
+            <div class="tab-pane fade" id="staff" role="tabpanel">
+                <h3>Manage Staff</h3>
+                <form id="addStaffForm" class="mb-4">
+                    <div class="mb-3">
+                        <label for="staffName" class="form-label">Staff Name</label>
+                        <input type="text" class="form-control" id="staffName" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Add Staff Member</button>
+                </form>
+                
+                <h4>Current Staff</h4>
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Current Tab</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="staffList">
+                        <!-- Will be populated dynamically -->
+                    </tbody>
+                </table>
+            </div>
+            
+            <!-- Manage Drinks Tab -->
+            <div class="tab-pane fade" id="drinks" role="tabpanel">
+                <h3>Manage Drinks</h3>
+                <form id="addDrinkForm" class="mb-4">
+                    <div class="mb-3">
+                        <label for="drinkName" class="form-label">Drink Name</label>
+                        <input type="text" class="form-control" id="drinkName" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="drinkCost" class="form-label">Cost Price</label>
+                        <input type="number" step="0.01" class="form-control" id="drinkCost" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Add Drink</button>
+                </form>
+                
+                <h4>Current Drinks</h4>
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Cost Price</th>
+                        </tr>
+                    </thead>
+                    <tbody id="drinksList">
+                        <!-- Will be populated dynamically -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal for Order History -->
+    <div class="modal fade" id="orderHistoryModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Order History</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Drink</th>
+                                <th>Cost</th>
+                                <th>Date</th>
+                            </tr>
+                        </thead>
+                        <tbody id="orderHistoryList">
+                            <!-- Will be populated dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Utility function to format currency
+        function formatCurrency(amount) {
+            return '£' + amount.toFixed(2); // Change $ to £
+        }
+
+        // Load all data when page loads
+        $(document).ready(function() {
+            loadStaff();
+            loadDrinks();
+            $('#orderHistoryList').empty(); // Clear the order history when the page loads
+        });
+
+        // Load staff into relevant dropdowns and lists
+        function loadStaff() {
+            $.get('/staff', function(data) {
+                $('#orderStaffSelect').empty().append('<option value="">Select Staff Member</option>');
+                $('#staffList').empty();
+                $('#staffOrdersList').empty();
+                
+                data.forEach(function(staff) {
+                    $('#orderStaffSelect').append(`<option value="${staff.id}">${staff.name}</option>`);
+                    
+                    $('#staffList').append(`
+                        <tr>
+                            <td>${staff.name}</td>
+                            <td>${formatCurrency(staff.tab)}</td>
+                            <td>
+                                <button class="btn btn-danger btn-sm delete-staff" data-id="${staff.id}">Delete</button>
+                            </td>
+                        </tr>
+                    `);
+                    
+                    $('#staffOrdersList').append(`
+                        <tr>
+                            <td>${staff.name}</td>
+                            <td>${formatCurrency(staff.tab)}</td>
+                            <td>
+                                <button class="btn btn-info btn-sm view-history" data-id="${staff.id}">View History</button>
+                            </td>
+                        </tr>
+                    `);
+                });
+            });
+        }
+
+        // Load drinks into relevant dropdowns and lists
+        function loadDrinks() {
+            $.get('/drinks', function(data) {
+                $('#orderDrinkSelect').empty().append('<option value="">Select Drink</option>');
+                $('#drinksList').empty();
+                
+                data.forEach(function(drink) {
+                    $('#orderDrinkSelect').append(`<option value="${drink.id}">${drink.name} (${formatCurrency(drink.cost)})</option>`);
+                    
+                    $('#drinksList').append(`
+                        <tr>
+                            <td>${drink.name}</td>
+                            <td>${formatCurrency(drink.cost)}</td>
+                            <td>
+                                <button class="btn btn-danger btn-sm delete-drink" data-id="${drink.id}">Delete</button>
+                            </td>
+                        </tr>
+                    `);
+                });
+            });
+        }
+
+        // Handle adding new staff
+        $('#addStaffForm').submit(function(e) {
+            e.preventDefault();
+            $.ajax({
+                url: '/staff',
+                method: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({
+                    staff_name: $('#staffName').val()
+                }),
+                success: function() {
+                    $('#staffName').val('');
+                    loadStaff();
+                }
+            });
+        });
+
+        // Handle adding new drink
+        $('#addDrinkForm').submit(function(e) {
+            e.preventDefault();
+            $.ajax({
+                url: '/drinks',
+                method: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({
+                    drink_name: $('#drinkName').val(),
+                    drink_cost: parseFloat($('#drinkCost').val())
+                }),
+                success: function() {
+                    $('#drinkName').val('');
+                    $('#drinkCost').val('');
+                    loadDrinks();
+                }
+            });
+        });
+
+        // Handle placing order
+        $('#orderForm').submit(function(e) {
+            e.preventDefault();
+            $.ajax({
+                url: '/order',
+                method: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({
+                    staff_id: $('#orderStaffSelect').val(),
+                    drink_id: $('#orderDrinkSelect').val()
+                }),
+                success: function() {
+                    $('#orderStaffSelect').val('');
+                    $('#orderDrinkSelect').val('');
+                    loadStaff();
+                }
+            });
+        });
+
+        // Handle deleting staff
+        $(document).on('click', '.delete-staff', function() {
+            const staffId = $(this).data('id');
+            $.ajax({
+                url: '/staff/' + staffId,
+                method: 'DELETE',
+                success: function() {
+                    loadStaff();
+                }
+            });
+        });
+
+        // Handle viewing order history
+        $(document).on('click', '.view-history', function() {
+            const staffId = $(this).data('id');
+            $.get('/staff/' + staffId + '/orders', function(data) {
+                $('#orderHistoryList').empty();
+                data.orders.forEach(function(order) {
+                    $('#orderHistoryList').append(`
+                        <tr>
+                            <td>${order.drink}</td>
+                            <td>${formatCurrency(order.cost)}</td>
+                            <td>${order.date}</td>
+                        </tr>
+                    `);
+                });
+                // Add Reset Tab button
+                $('#orderHistoryList').append(`
+                    <tr>
+                        <td colspan="3" class="text-end">
+                            <form action="/staff/${staffId}/reset_tab" method="POST" style="display:inline;">
+                                <button type="submit" class="btn btn-warning">Reset Tab</button>
+                            </form>
+                        </td>
+                    </tr>
+                `);
+                $('#orderHistoryModal').modal('show');
+            });
+        });
+
+        // Handle deleting drinks
+        $(document).on('click', '.delete-drink', function() {
+            const drinkId = $(this).data('id');
+            $.ajax({
+                url: '/drinks/' + drinkId,
+                method: 'DELETE',
+                success: function() {
+                    loadDrinks();
+                }
+            });
+        });
+    </script>
+</body>
+</html>
